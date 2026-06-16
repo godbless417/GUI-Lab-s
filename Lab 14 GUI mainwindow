@@ -1,0 +1,583 @@
+#include "MainWindow.h"
+#include <QFileInfo>
+#include <QDir>
+
+// Конструктор - создание интерфейса
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+{
+    // Настройка главного окна
+    setWindowTitle("Лабораторная работа №14 - Вариант 9");
+    resize(1100, 750);
+    
+    // Центральный виджет
+    QWidget *centralWidget = new QWidget(this);
+    setCentralWidget(centralWidget);
+    
+    // Главный вертикальный layout
+    QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
+    mainLayout->setSpacing(15);
+    mainLayout->setContentsMargins(15, 15, 15, 15);
+    
+    // ==================== ГРУППА ВЫБОРА ФАЙЛОВ ====================
+    groupBoxFiles = new QGroupBox("Выбор файлов", this);
+    groupBoxFiles->setStyleSheet(
+        "QGroupBox {"
+        "  border: 2px solid #3498db;"
+        "  border-radius: 8px;"
+        "  margin-top: 12px;"
+        "  padding-top: 12px;"
+        "  font-weight: bold;"
+        "}"
+        "QGroupBox::title {"
+        "  subcontrol-origin: margin;"
+        "  left: 10px;"
+        "  padding: 0 5px 0 5px;"
+        "  color: #3498db;"
+        "}"
+    );
+    
+    QGridLayout *fileLayout = new QGridLayout(groupBoxFiles);
+    
+    // Входной файл
+    QLabel *lblInput = new QLabel("Входной файл:", this);
+    lblInput->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    
+    lineEditInputPath = new QLineEdit(this);
+    lineEditInputPath->setReadOnly(true);
+    lineEditInputPath->setPlaceholderText("Выберите входной текстовый файл...");
+    lineEditInputPath->setStyleSheet("padding: 5px;");
+    
+    btnOpenInput = new QPushButton("Выбрать...", this);
+    btnOpenInput->setMinimumWidth(100);
+    btnOpenInput->setStyleSheet(
+        "QPushButton {"
+        "  background-color: #3498db;"
+        "  color: white;"
+        "  border: none;"
+        "  border-radius: 5px;"
+        "  padding: 5px 10px;"
+        "}"
+        "QPushButton:hover { background-color: #2980b9; }"
+    );
+    
+    // Выходной файл
+    QLabel *lblOutput = new QLabel("Выходной файл:", this);
+    lblOutput->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    
+    lineEditOutputPath = new QLineEdit(this);
+    lineEditOutputPath->setReadOnly(true);
+    lineEditOutputPath->setPlaceholderText("Выберите выходной текстовый файл...");
+    lineEditOutputPath->setStyleSheet("padding: 5px;");
+    
+    btnOpenOutput = new QPushButton("Выбрать...", this);
+    btnOpenOutput->setMinimumWidth(100);
+    btnOpenOutput->setStyleSheet(
+        "QPushButton {"
+        "  background-color: #3498db;"
+        "  color: white;"
+        "  border: none;"
+        "  border-radius: 5px;"
+        "  padding: 5px 10px;"
+        "}"
+        "QPushButton:hover { background-color: #2980b9; }"
+    );
+    
+    fileLayout->addWidget(lblInput, 0, 0);
+    fileLayout->addWidget(lineEditInputPath, 0, 1);
+    fileLayout->addWidget(btnOpenInput, 0, 2);
+    fileLayout->addWidget(lblOutput, 1, 0);
+    fileLayout->addWidget(lineEditOutputPath, 1, 1);
+    fileLayout->addWidget(btnOpenOutput, 1, 2);
+    
+    fileLayout->setColumnStretch(1, 1);
+    
+    // ==================== ГРУППА ПРОСМОТРА ФАЙЛОВ ====================
+    groupBoxView = new QGroupBox("Содержимое файлов", this);
+    groupBoxView->setStyleSheet(
+        "QGroupBox {"
+        "  border: 2px solid #2ecc71;"
+        "  border-radius: 8px;"
+        "  margin-top: 12px;"
+        "  padding-top: 12px;"
+        "  font-weight: bold;"
+        "}"
+        "QGroupBox::title {"
+        "  subcontrol-origin: margin;"
+        "  left: 10px;"
+        "  padding: 0 5px 0 5px;"
+        "  color: #2ecc71;"
+        "}"
+    );
+    
+    QHBoxLayout *viewLayout = new QHBoxLayout(groupBoxView);
+    
+    // Левый список - входной файл
+    QVBoxLayout *leftLayout = new QVBoxLayout();
+    QLabel *lblInputContent = new QLabel("Входной файл (исходные строки):", this);
+    lblInputContent->setStyleSheet("font-weight: bold; color: #2c3e50;");
+    listWidgetInputFile = new QListWidget(this);
+    listWidgetInputFile->setAlternatingRowColors(true);
+    listWidgetInputFile->setMinimumHeight(250);
+    listWidgetInputFile->setStyleSheet(
+        "QListWidget {"
+        "  font-family: 'Courier New', monospace;"
+        "  font-size: 10pt;"
+        "}"
+    );
+    leftLayout->addWidget(lblInputContent);
+    leftLayout->addWidget(listWidgetInputFile);
+    
+    // Правый список - выходной файл
+    QVBoxLayout *rightLayout = new QVBoxLayout();
+    QLabel *lblOutputContent = new QLabel("Выходной файл (без содержимого скобок):", this);
+    lblOutputContent->setStyleSheet("font-weight: bold; color: #2c3e50;");
+    listWidgetOutputFile = new QListWidget(this);
+    listWidgetOutputFile->setAlternatingRowColors(true);
+    listWidgetOutputFile->setMinimumHeight(250);
+    listWidgetOutputFile->setStyleSheet(
+        "QListWidget {"
+        "  font-family: 'Courier New', monospace;"
+        "  font-size: 10pt;"
+        "}"
+    );
+    rightLayout->addWidget(lblOutputContent);
+    rightLayout->addWidget(listWidgetOutputFile);
+    
+    viewLayout->addLayout(leftLayout, 1);
+    viewLayout->addLayout(rightLayout, 1);
+    
+    // ==================== ГРУППА ИНФОРМАЦИИ ====================
+    groupBoxInfo = new QGroupBox("Статистика обработки", this);
+    groupBoxInfo->setStyleSheet(
+        "QGroupBox {"
+        "  border: 2px solid #9b59b6;"
+        "  border-radius: 8px;"
+        "  margin-top: 12px;"
+        "  padding-top: 12px;"
+        "  font-weight: bold;"
+        "}"
+        "QGroupBox::title {"
+        "  subcontrol-origin: margin;"
+        "  left: 10px;"
+        "  padding: 0 5px 0 5px;"
+        "  color: #9b59b6;"
+        "}"
+    );
+    
+    QGridLayout *infoLayout = new QGridLayout(groupBoxInfo);
+    
+    QLabel *lblLongestLine = new QLabel("Самая длинная строка после обработки:", this);
+    lblLongestLine->setStyleSheet("font-weight: bold;");
+    
+    labelLongestLineInfo = new QLabel(this);
+    labelLongestLineInfo->setWordWrap(true);
+    labelLongestLineInfo->setStyleSheet(
+        "background-color: #f3e5f5;"
+        "padding: 8px;"
+        "border-radius: 5px;"
+        "font-family: 'Courier New', monospace;"
+    );
+    
+    QLabel *lblProcessed = new QLabel("Обработанные строки:", this);
+    lblProcessed->setStyleSheet("font-weight: bold;");
+    
+    labelProcessedInfo = new QLabel("0", this);
+    labelProcessedInfo->setStyleSheet(
+        "background-color: #e8f5e9;"
+        "padding: 8px;"
+        "border-radius: 5px;"
+        "font-weight: bold;"
+    );
+    
+    infoLayout->addWidget(lblLongestLine, 0, 0);
+    infoLayout->addWidget(labelLongestLineInfo, 0, 1);
+    infoLayout->addWidget(lblProcessed, 1, 0);
+    infoLayout->addWidget(labelProcessedInfo, 1, 1);
+    
+    infoLayout->setColumnStretch(1, 1);
+    
+    // ==================== КНОПКИ ====================
+    QHBoxLayout *buttonLayout = new QHBoxLayout();
+    buttonLayout->addStretch();
+    
+    btnProcess = new QPushButton("ОБРАБОТАТЬ ФАЙЛЫ", this);
+    btnProcess->setMinimumSize(160, 45);
+    btnProcess->setEnabled(false);
+    btnProcess->setStyleSheet(
+        "QPushButton {"
+        "  background-color: #27ae60;"
+        "  color: white;"
+        "  border: none;"
+        "  border-radius: 5px;"
+        "  font-weight: bold;"
+        "  font-size: 12pt;"
+        "  padding: 8px 20px;"
+        "}"
+        "QPushButton:hover { background-color: #2ecc71; }"
+        "QPushButton:pressed { background-color: #219a52; }"
+        "QPushButton:disabled { background-color: #95a5a6; }"
+    );
+    
+    btnClear = new QPushButton("ОЧИСТИТЬ", this);
+    btnClear->setMinimumSize(140, 45);
+    btnClear->setStyleSheet(
+        "QPushButton {"
+        "  background-color: #f39c12;"
+        "  color: white;"
+        "  border: none;"
+        "  border-radius: 5px;"
+        "  font-weight: bold;"
+        "  font-size: 12pt;"
+        "  padding: 8px 20px;"
+        "}"
+        "QPushButton:hover { background-color: #e67e22; }"
+        "QPushButton:pressed { background-color: #d35400; }"
+    );
+    
+    btnExit = new QPushButton("ВЫХОД", this);
+    btnExit->setMinimumSize(120, 45);
+    btnExit->setStyleSheet(
+        "QPushButton {"
+        "  background-color: #e74c3c;"
+        "  color: white;"
+        "  border: none;"
+        "  border-radius: 5px;"
+        "  font-weight: bold;"
+        "  font-size: 12pt;"
+        "  padding: 8px 20px;"
+        "}"
+        "QPushButton:hover { background-color: #c0392b; }"
+        "QPushButton:pressed { background-color: #a93226; }"
+    );
+    
+    buttonLayout->addWidget(btnProcess);
+    buttonLayout->addSpacing(20);
+    buttonLayout->addWidget(btnClear);
+    buttonLayout->addSpacing(20);
+    buttonLayout->addWidget(btnExit);
+    buttonLayout->addStretch();
+    
+    // ==================== СТАТУСНАЯ СТРОКА ====================
+    labelStatus = new QLabel(this);
+    labelStatus->setAlignment(Qt::AlignCenter);
+    labelStatus->setMinimumHeight(45);
+    labelStatus->setStyleSheet(
+        "QLabel {"
+        "  padding: 10px;"
+        "  border-radius: 5px;"
+        "  font-weight: 500;"
+        "}"
+    );
+    updateStatus("Выберите входной и выходной файлы для обработки");
+    
+    // Добавление всех компонентов в главный layout
+    mainLayout->addWidget(groupBoxFiles);
+    mainLayout->addWidget(groupBoxView);
+    mainLayout->addWidget(groupBoxInfo);
+    mainLayout->addLayout(buttonLayout);
+    mainLayout->addWidget(labelStatus);
+    
+    // Подключение сигналов
+    connect(btnOpenInput, &QPushButton::clicked, this, &MainWindow::onOpenInputFileClicked);
+    connect(btnOpenOutput, &QPushButton::clicked, this, &MainWindow::onOpenOutputFileClicked);
+    connect(btnProcess, &QPushButton::clicked, this, &MainWindow::onProcessClicked);
+    connect(btnClear, &QPushButton::clicked, this, &MainWindow::onClearClicked);
+    connect(btnExit, &QPushButton::clicked, this, &MainWindow::onExitClicked);
+}
+
+MainWindow::~MainWindow()
+{
+}
+
+// Функция обновления статусной строки
+void MainWindow::updateStatus(const QString &message, bool isError)
+{
+    labelStatus->setText(message);
+    
+    QString style = isError
+        ? "background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;"
+        : "background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;";
+    
+    labelStatus->setStyleSheet(
+        "QLabel {"
+        "  padding: 10px;"
+        "  border-radius: 5px;"
+        "  font-weight: 500;"
+        "  " + style + 
+        "}"
+    );
+}
+
+// Функция управления состоянием кнопки обработки
+void MainWindow::setProcessButtonState()
+{
+    bool enabled = !inputFilePath.isEmpty() && !outputFilePath.isEmpty();
+    btnProcess->setEnabled(enabled);
+    
+    if (enabled) {
+        btnProcess->setToolTip("Начать обработку файлов");
+    } else {
+        btnProcess->setToolTip("Сначала выберите входной и выходной файлы");
+    }
+}
+
+// Функция отображения содержимого файла в списке
+void MainWindow::displayFileContent(const QString &filePath, QListWidget *listWidget)
+{
+    listWidget->clear();
+    
+    QFile file(filePath);
+    if (!file.exists()) {
+        listWidget->addItem("Файл не существует");
+        return;
+    }
+    
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        listWidget->addItem("Не удалось открыть файл для чтения");
+        return;
+    }
+    
+    QTextStream stream(&file);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    stream.setEncoding(QStringConverter::Utf8);
+#else
+    stream.setCodec("UTF-8");
+#endif
+    
+    int lineNumber = 0;
+    while (!stream.atEnd()) {
+        QString line = stream.readLine();
+        listWidget->addItem(QString("[%1] %2").arg(++lineNumber, 3, 10, QChar('0')).arg(line));
+    }
+    
+    file.close();
+}
+
+// ОСНОВНАЯ ФУНКЦИЯ: Удаление содержимого круглых скобок из строки
+// Алгоритм: проходим по строке, копируем все символы вне скобок
+QString MainWindow::removeParenthesesContent(const QString &line)
+{
+    QString result;
+    bool insideParentheses = false;
+    
+    for (int i = 0; i < line.length(); ++i) {
+        QChar currentChar = line[i];
+        
+        if (currentChar == '(') {
+            insideParentheses = true;
+            continue;  // Не добавляем '(' в результат
+        }
+        
+        if (currentChar == ')') {
+            insideParentheses = false;
+            continue;  // Не добавляем ')' в результат
+        }
+        
+        if (!insideParentheses) {
+            result += currentChar;
+        }
+    }
+    
+    // Удаляем лишние пробелы, которые могли образоваться
+    result.replace(QRegularExpression("\\s+"), " ");
+    result = result.trimmed();
+    
+    return result;
+}
+
+// Функция обработки файлов (Вариант 9)
+void MainWindow::processFiles(const QString &inputPath, const QString &outputPath,
+                               QListWidget *inputList, QListWidget *outputList,
+                               QString &longestLine, int &longestLineLength)
+{
+    // Очистка списков и переменных
+    inputList->clear();
+    outputList->clear();
+    longestLine.clear();
+    longestLineLength = 0;
+    
+    QFile inputFile(inputPath);
+    QFile outputFile(outputPath);
+    
+    if (!inputFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        throw std::runtime_error("Не удалось открыть входной файл");
+    }
+    
+    if (!outputFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        inputFile.close();
+        throw std::runtime_error("Не удалось открыть выходной файл для записи");
+    }
+    
+    QTextStream inputStream(&inputFile);
+    QTextStream outputStream(&outputFile);
+    
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    inputStream.setEncoding(QStringConverter::Utf8);
+    outputStream.setEncoding(QStringConverter::Utf8);
+#else
+    inputStream.setCodec("UTF-8");
+    outputStream.setCodec("UTF-8");
+#endif
+    
+    int lineNumber = 0;
+    int processedLines = 0;
+    
+    while (!inputStream.atEnd()) {
+        QString originalLine = inputStream.readLine();
+        lineNumber++;
+        
+        // Отображение исходной строки в списке
+        inputList->addItem(QString("[%1] %2").arg(lineNumber, 3, 10, QChar('0')).arg(originalLine));
+        
+        // Обработка строки: удаление содержимого скобок
+        QString processedLine = removeParenthesesContent(originalLine);
+        
+        // Если строка после обработки пустая, но исходная не была пустой,
+        // возможно, вся строка была внутри скобок - оставляем пустую строку
+        if (originalLine.isEmpty()) {
+            processedLine = "";
+        }
+        
+        // Запись в выходной файл
+        outputStream << processedLine << Qt::endl;
+        
+        // Отображение обработанной строки в списке
+        outputList->addItem(QString("[%1] %2").arg(lineNumber, 3, 10, QChar('0')).arg(processedLine));
+        
+        // Поиск самой длинной строки (только непустые строки)
+        if (!processedLine.isEmpty() && processedLine.length() > longestLineLength) {
+            longestLineLength = processedLine.length();
+            longestLine = processedLine;
+        }
+        
+        processedLines++;
+    }
+    
+    inputFile.close();
+    outputFile.close();
+    
+    // Обновление информации о количестве обработанных строк
+    labelProcessedInfo->setText(QString("%1 строк").arg(processedLines));
+    
+    // Обновление информации о самой длинной строке
+    if (longestLineLength > 0) {
+        labelLongestLineInfo->setText(QString("Длина: %1 символов\n\"%2\"")
+                                       .arg(longestLineLength)
+                                       .arg(longestLine.length() > 100 ? longestLine.left(100) + "..." : longestLine));
+    } else {
+        labelLongestLineInfo->setText("Нет непустых строк после обработки");
+    }
+}
+
+// Обработчик кнопки выбора входного файла
+void MainWindow::onOpenInputFileClicked()
+{
+    QString fileName = QFileDialog::getOpenFileName(this,
+        "Выберите входной текстовый файл",
+        QDir::homePath(),
+        "Текстовые файлы (*.txt);;Все файлы (*.*)");
+    
+    if (!fileName.isEmpty()) {
+        inputFilePath = fileName;
+        lineEditInputPath->setText(inputFilePath);
+        updateStatus("Входной файл выбран: " + QFileInfo(fileName).fileName());
+        
+        // Отображаем содержимое входного файла
+        displayFileContent(inputFilePath, listWidgetInputFile);
+    } else {
+        inputFilePath = "";
+        lineEditInputPath->clear();
+        updateStatus("Выбор входного файла отменен");
+        listWidgetInputFile->clear();
+    }
+    
+    setProcessButtonState();
+}
+
+// Обработчик кнопки выбора выходного файла
+void MainWindow::onOpenOutputFileClicked()
+{
+    QString fileName = QFileDialog::getSaveFileName(this,
+        "Выберите выходной текстовый файл",
+        QDir::homePath() + "/output.txt",
+        "Текстовые файлы (*.txt);;Все файлы (*.*)");
+    
+    if (!fileName.isEmpty()) {
+        if (!fileName.endsWith(".txt", Qt::CaseInsensitive)) {
+            fileName += ".txt";
+        }
+        outputFilePath = fileName;
+        lineEditOutputPath->setText(outputFilePath);
+        updateStatus("Выходной файл выбран: " + QFileInfo(fileName).fileName());
+    } else {
+        outputFilePath = "";
+        lineEditOutputPath->clear();
+        updateStatus("Выбор выходного файла отменен");
+        listWidgetOutputFile->clear();
+        labelLongestLineInfo->setText("");
+        labelProcessedInfo->setText("0");
+    }
+    
+    setProcessButtonState();
+}
+
+// Обработчик кнопки "Обработать файлы"
+void MainWindow::onProcessClicked()
+{
+    // Проверка существования входного файла
+    if (!QFile::exists(inputFilePath)) {
+        updateStatus("Ошибка: Входной файл не существует!", true);
+        return;
+    }
+    
+    try {
+        updateStatus("Обработка файлов...");
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+        
+        QString longestLine;
+        int longestLineLength = 0;
+        
+        processFiles(inputFilePath, outputFilePath,
+                     listWidgetInputFile, listWidgetOutputFile,
+                     longestLine, longestLineLength);
+        
+        QApplication::restoreOverrideCursor();
+        updateStatus(QString("Обработка завершена. Обработано строк: %1 | Самая длинная строка: %2 символов")
+                     .arg(listWidgetInputFile->count())
+                     .arg(longestLineLength));
+        
+    } catch (const std::exception &e) {
+        QApplication::restoreOverrideCursor();
+        updateStatus(QString("Ошибка при обработке: %1").arg(e.what()), true);
+    } catch (...) {
+        QApplication::restoreOverrideCursor();
+        updateStatus("Неизвестная ошибка при обработке файлов!", true);
+    }
+}
+
+// Обработчик кнопки "Очистить"
+void MainWindow::onClearClicked()
+{
+    inputFilePath = "";
+    outputFilePath = "";
+    
+    lineEditInputPath->clear();
+    lineEditOutputPath->clear();
+    
+    listWidgetInputFile->clear();
+    listWidgetOutputFile->clear();
+    
+    labelLongestLineInfo->clear();
+    labelProcessedInfo->setText("0");
+    
+    btnProcess->setEnabled(false);
+    
+    updateStatus("Поля очищены. Выберите входной и выходной файлы");
+}
+
+// Обработчик кнопки "Выход"
+void MainWindow::onExitClicked()
+{
+    QApplication::quit();
+}
