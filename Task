@@ -1,0 +1,63 @@
+#include <vector>
+#include <limits>
+
+using namespace std;
+
+// Функция поиска максимального элемента
+double findMax(const vector<double>& data) {
+    if (data.empty()) return -numeric_limits<double>::infinity();
+    
+    double maxVal = data[0];
+    for (size_t i = 1; i < data.size(); ++i) {
+        if (data[i] > maxVal) {
+            maxVal = data[i];
+        }
+    }
+    return maxVal;
+}
+
+// Функция проверки условия: первый элемент НЕ является максимальным
+bool checkCondition(const vector<double>& data) {
+    if (data.empty()) return false;
+    
+    double firstElem = data[0];
+    double maxElem = findMax(data);
+    
+    return firstElem != maxElem;
+}
+
+// Функция создания нового вектора из элементов, больших первого
+vector<double> createNewVector(const vector<double>& data) {
+    vector<double> result;
+    
+    if (data.empty()) {
+        return result;
+    }
+    
+    double firstElem = data[0];
+    
+    for (size_t i = 0; i < data.size(); ++i) {
+        if (data[i] > firstElem) {
+            result.push_back(data[i]);
+        }
+    }
+    
+    return result;
+}
+
+// Функция анализа (возвращает количество элементов в новом векторе)
+int analysis(const vector<double>& data) {
+    vector<double> newVec = createNewVector(data);
+    return newVec.size();
+}
+
+// Основная функция решения задачи
+vector<double> task(const vector<double>& data, bool& conditionMet) {
+    conditionMet = checkCondition(data);
+    
+    if (conditionMet) {
+        return createNewVector(data);
+    } else {
+        return vector<double>();
+    }
+}
