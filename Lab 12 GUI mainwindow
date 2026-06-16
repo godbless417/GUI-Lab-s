@@ -1,0 +1,401 @@
+#include "MainWindow.h"
+#include <random>
+#include <algorithm>
+#include <cmath>
+#include <QDebug>
+
+// Конструктор - создание интерфейса
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+{
+    // Настройка главного окна
+    setWindowTitle("Лабораторная работа №12 - Вариант 9");
+    resize(1100, 700);
+    
+    // Центральный виджет
+    QWidget *centralWidget = new QWidget(this);
+    setCentralWidget(centralWidget);
+    
+    // Главный вертикальный layout
+    QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
+    
+    groupBoxInput = new QGroupBox("Входные параметры", this);
+    groupBoxInput->setStyleSheet(
+        "QGroupBox {"
+        "  border: 2px solid #3498db;"
+        "  border-radius: 5px;"
+        "  margin-top: 10px;"
+        "  padding-top: 10px;"
+        "  font-weight: bold;"
+        "}"
+        "QGroupBox::title {"
+        "  subcontrol-origin: margin;"
+        "  left: 10px;"
+        "  padding: 0 5px 0 5px;"
+        "}"
+    );
+    
+    QGridLayout *inputLayout = new QGridLayout(groupBoxInput);
+    
+    // Метки и поля ввода
+    QLabel *lblM = new QLabel("Количество строк (m):", this);
+    lblM->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    txtM = new QLineEdit(this);
+    txtM->setPlaceholderText("1-100");
+    txtM->setValidator(new QIntValidator(1, 100, this));
+    
+    QLabel *lblN = new QLabel("Количество столбцов (n):", this);
+    lblN->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    txtN = new QLineEdit(this);
+    txtN->setPlaceholderText("1-100");
+    txtN->setValidator(new QIntValidator(1, 100, this));
+    
+    QLabel *lblMin = new QLabel("Минимальное значение:", this);
+    lblMin->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    txtMin = new QLineEdit(this);
+    txtMin->setPlaceholderText("Например: -100");
+    
+    QLabel *lblMax = new QLabel("Максимальное значение:", this);
+    lblMax->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    txtMax = new QLineEdit(this);
+    txtMax->setPlaceholderText("Например: 100");
+    
+    inputLayout->addWidget(lblM, 0, 0);
+    inputLayout->addWidget(txtM, 0, 1);
+    inputLayout->addWidget(lblN, 1, 0);
+    inputLayout->addWidget(txtN, 1, 1);
+    inputLayout->addWidget(lblMin, 2, 0);
+    inputLayout->addWidget(txtMin, 2, 1);
+    inputLayout->addWidget(lblMax, 3, 0);
+    inputLayout->addWidget(txtMax, 3, 1);
+    
+    inputLayout->setColumnStretch(1, 1);
+    
+    groupBoxOutput = new QGroupBox("Результаты", this);
+    groupBoxOutput->setStyleSheet(
+        "QGroupBox {"
+        "  border: 2px solid #3498db;"
+        "  border-radius: 5px;"
+        "  margin-top: 10px;"
+        "  padding-top: 10px;"
+        "  font-weight: bold;"
+        "}"
+        "QGroupBox::title {"
+        "  subcontrol-origin: margin;"
+        "  left: 10px;"
+        "  padding: 0 5px 0 5px;"
+        "}"
+    );
+    
+    QHBoxLayout *outputLayout = new QHBoxLayout(groupBoxOutput);
+    
+    // Левая колонка - исходная матрица
+    QVBoxLayout *leftLayout = new QVBoxLayout();
+    QLabel *lblOriginal = new QLabel("Исходная матрица P(m×n):", this);
+    lblOriginal->setStyleSheet("font-weight: bold;");
+    lstOriginal = new QListWidget(this);
+    lstOriginal->setAlternatingRowColors(true);
+    lstOriginal->setMinimumHeight(300);
+    lstOriginal->setStyleSheet(
+        "QListWidget {"
+        "  font-family: monospace;"
+        "  font-size: 11pt;"
+        "}"
+    );
+    leftLayout->addWidget(lblOriginal);
+    leftLayout->addWidget(lstOriginal);
+    
+    // Правая колонка - результат
+    QVBoxLayout *rightLayout = new QVBoxLayout();
+    QLabel *lblResult = new QLabel("Результат (макс/мин с первым/последним):", this);
+    lblResult->setStyleSheet("font-weight: bold;");
+    lstResult = new QListWidget(this);
+    lstResult->setAlternatingRowColors(true);
+    lstResult->setMinimumHeight(300);
+    lstResult->setStyleSheet(
+        "QListWidget {"
+        "  font-family: monospace;"
+        "  font-size: 11pt;"
+        "}"
+    );
+    rightLayout->addWidget(lblResult);
+    rightLayout->addWidget(lstResult);
+    
+    outputLayout->addLayout(leftLayout, 1);
+    outputLayout->addLayout(rightLayout, 1);
+    
+    // ==================== КНОПКИ ====================
+    QHBoxLayout *buttonLayout = new QHBoxLayout();
+    buttonLayout->addStretch();
+    
+    btnSolve = new QPushButton("РЕШЕНИЕ", this);
+    btnSolve->setMinimumSize(150, 45);
+    btnSolve->setStyleSheet(
+        "QPushButton {"
+        "  background-color: #4CAF50;"
+        "  color: white;"
+        "  border: none;"
+        "  border-radius: 5px;"
+        "  font-weight: bold;"
+        "  font-size: 12pt;"
+        "}"
+        "QPushButton:hover {"
+        "  background-color: #45a049;"
+        "}"
+        "QPushButton:pressed {"
+        "  background-color: #3d8b40;"
+        "}"
+    );
+    
+    btnExit = new QPushButton("ВЫХОД", this);
+    btnExit->setMinimumSize(150, 45);
+    btnExit->setStyleSheet(
+        "QPushButton {"
+        "  background-color: #f44336;"
+        "  color: white;"
+        "  border: none;"
+        "  border-radius: 5px;"
+        "  font-weight: bold;"
+        "  font-size: 12pt;"
+        "}"
+        "QPushButton:hover {"
+        "  background-color: #d32f2f;"
+        "}"
+        "QPushButton:pressed {"
+        "  background-color: #b71c1c;"
+        "}"
+    );
+    
+    buttonLayout->addWidget(btnSolve);
+    buttonLayout->addSpacing(20);
+    buttonLayout->addWidget(btnExit);
+    buttonLayout->addStretch();
+    
+    // ==================== СТАТУСНАЯ СТРОКА ====================
+    labelStatus = new QLabel(this);
+    labelStatus->setAlignment(Qt::AlignCenter);
+    labelStatus->setMinimumHeight(50);
+    labelStatus->setStyleSheet(
+        "QLabel {"
+        "  padding: 10px;"
+        "  border-radius: 5px;"
+        "  font-weight: 500;"
+        "}"
+    );
+    updateStatus("Введите параметры и нажмите 'РЕШЕНИЕ'");
+    
+    // Добавление всех компонентов в главный layout
+    mainLayout->addWidget(groupBoxInput);
+    mainLayout->addWidget(groupBoxOutput);
+    mainLayout->addLayout(buttonLayout);
+    mainLayout->addWidget(labelStatus);
+    
+    // Подключение сигналов
+    connect(btnSolve, &QPushButton::clicked, this, &MainWindow::onSolveClicked);
+    connect(btnExit, &QPushButton::clicked, this, &MainWindow::onExitClicked);
+}
+
+MainWindow::~MainWindow()
+{
+}
+
+// Функция получения целого числа из поля ввода
+int MainWindow::getInt(QLineEdit *edit)
+{
+    bool ok;
+    int value = edit->text().toInt(&ok);
+    return ok ? value : 0;
+}
+
+// Функция валидации ввода
+bool MainWindow::validateInput()
+{
+    bool ok1, ok2, ok3, ok4;
+    int m = txtM->text().toInt(&ok1);
+    int n = txtN->text().toInt(&ok2);
+    double minVal = txtMin->text().toDouble(&ok3);
+    double maxVal = txtMax->text().toDouble(&ok4);
+    
+    if (!ok1 || m < 1 || m > 100) {
+        updateStatus("Ошибка: количество строк должно быть от 1 до 100!", true);
+        return false;
+    }
+    
+    if (!ok2 || n < 1 || n > 100) {
+        updateStatus("Ошибка: количество столбцов должно быть от 1 до 100!", true);
+        return false;
+    }
+    
+    if (!ok3) {
+        updateStatus("Ошибка: введите корректное минимальное значение!", true);
+        return false;
+    }
+    
+    if (!ok4) {
+        updateStatus("Ошибка: введите корректное максимальное значение!", true);
+        return false;
+    }
+    
+    if (minVal >= maxVal) {
+        updateStatus("Ошибка: минимальное значение должно быть меньше максимального!", true);
+        return false;
+    }
+    
+    return true;
+}
+
+// Функция обновления статусной строки
+void MainWindow::updateStatus(const QString &message, bool isError)
+{
+    labelStatus->setText(message);
+    
+    QString style = isError
+        ? "background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;"
+        : "background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;";
+    
+    labelStatus->setStyleSheet(
+        "QLabel {"
+        "  padding: 10px;"
+        "  border-radius: 5px;"
+        "  font-weight: 500;"
+        "  " + style + 
+        "}"
+    );
+}
+
+// Форматирование вещественного числа для вывода
+QString MainWindow::formatDouble(double value)
+{
+    QString str = QString::number(value, 'f', 2);
+    return str;
+}
+
+// Функция создания матрицы со случайными вещественными числами
+std::vector<std::vector<double>> MainWindow::createMatrix(int m, int n, double minVal, double maxVal)
+{
+    std::vector<std::vector<double>> matrix(m, std::vector<double>(n));
+    
+    // Инициализация генератора случайных чисел
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> dist(minVal, maxVal);
+    
+    // Заполнение матрицы
+    for (int i = 0; i < m; ++i) {
+        for (int j = 0; j < n; ++j) {
+            matrix[i][j] = dist(gen);
+        }
+    }
+    
+    return matrix;
+}
+
+// Функция обработки матрицы (вариант 9)
+// В каждой строке: макс <-> первый, мин <-> последний
+void MainWindow::processMatrix(std::vector<std::vector<double>> &matrix)
+{
+    for (size_t i = 0; i < matrix.size(); ++i) {
+        if (matrix[i].empty()) continue;
+        
+        // Поиск индексов максимального и минимального элементов в строке
+        int maxIndex = 0;
+        int minIndex = 0;
+        
+        for (size_t j = 1; j < matrix[i].size(); ++j) {
+            if (matrix[i][j] > matrix[i][maxIndex]) {
+                maxIndex = j;
+            }
+            if (matrix[i][j] < matrix[i][minIndex]) {
+                minIndex = j;
+            }
+        }
+        
+        // Меняем местами максимальный элемент с первым
+        std::swap(matrix[i][0], matrix[i][maxIndex]);
+        
+        // Если минимальный элемент оказался на позиции 0 (из-за предыдущего обмена)
+        // нужно скорректировать его индекс
+        if (minIndex == 0) {
+            minIndex = maxIndex;
+        }
+        
+        // Меняем местами минимальный элемент с последним
+        std::swap(matrix[i][matrix[i].size() - 1], matrix[i][minIndex]);
+    }
+}
+
+// Функция вывода матрицы в список
+void MainWindow::displayMatrix(const std::vector<std::vector<double>> &matrix, QListWidget *listWidget)
+{
+    listWidget->clear();
+    
+    if (matrix.empty()) {
+        listWidget->addItem("Массив пуст");
+        return;
+    }
+    
+    for (size_t i = 0; i < matrix.size(); ++i) {
+        QString rowStr;
+        
+        // Добавляем номер строки
+        rowStr += QString("[%1] ").arg(i, 2);
+        
+        for (size_t j = 0; j < matrix[i].size(); ++j) {
+            QString formatted = formatDouble(matrix[i][j]);
+            rowStr += QString("%1").arg(formatted, 10);
+        }
+        
+        listWidget->addItem(rowStr);
+    }
+}
+
+// Обработчик кнопки "Решение"
+void MainWindow::onSolveClicked()
+{
+    // Очистка списков
+    lstOriginal->clear();
+    lstResult->clear();
+    
+    // Валидация ввода
+    if (!validateInput()) {
+        return;
+    }
+    
+    // Получение параметров
+    int m = getInt(txtM);
+    int n = getInt(txtN);
+    double minVal = txtMin->text().toDouble();
+    double maxVal = txtMax->text().toDouble();
+    
+    try {
+        // Создание исходной матрицы
+        std::vector<std::vector<double>> matrix = createMatrix(m, n, minVal, maxVal);
+        
+        // Вывод исходной матрицы
+        displayMatrix(matrix, lstOriginal);
+        
+        // Копирование матрицы для обработки (чтобы сохранить исходную)
+        std::vector<std::vector<double>> processedMatrix = matrix;
+        
+        // Обработка матрицы (вариант 9)
+        processMatrix(processedMatrix);
+        
+        // Вывод обработанной матрицы
+        displayMatrix(processedMatrix, lstResult);
+        
+        // Формирование информационного сообщения
+        updateStatus(QString("✓ Обработка завершена. Матрица %1×%2 обработана. "
+                            "В каждой строке максимальный элемент переставлен с первым, "
+                            "минимальный - с последним.")
+                            .arg(m).arg(n));
+        
+    } catch (const std::exception &e) {
+        updateStatus(QString("Ошибка при выполнении операции: %1").arg(e.what()), true);
+    }
+}
+
+// Обработчик кнопки "Выход"
+void MainWindow::onExitClicked()
+{
+    close();
+}
