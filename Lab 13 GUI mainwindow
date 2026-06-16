@@ -1,0 +1,398 @@
+#include "MainWindow.h"
+#include <QMessageBox>
+#include <QRegularExpression>
+#include <QApplication>
+
+// Конструктор - создание интерфейса
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+{
+    // Настройка главного окна
+    setWindowTitle("Лабораторная работа №13 - Вариант 9");
+    resize(900, 650);
+    
+    // Центральный виджет
+    QWidget *centralWidget = new QWidget(this);
+    setCentralWidget(centralWidget);
+    
+    // Главный вертикальный layout
+    QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
+    mainLayout->setSpacing(15);
+    mainLayout->setContentsMargins(15, 15, 15, 15);
+    
+    // ==================== ГРУППА ПРИМЕРОВ ====================
+    groupBoxExample = new QGroupBox("Примеры для тестирования", this);
+    groupBoxExample->setStyleSheet(
+        "QGroupBox {"
+        "  border: 2px solid #9b59b6;"
+        "  border-radius: 8px;"
+        "  margin-top: 12px;"
+        "  padding-top: 12px;"
+        "  font-weight: bold;"
+        "}"
+        "QGroupBox::title {"
+        "  subcontrol-origin: margin;"
+        "  left: 10px;"
+        "  padding: 0 5px 0 5px;"
+        "  color: #9b59b6;"
+        "}"
+    );
+    
+    QVBoxLayout *exampleLayout = new QVBoxLayout(groupBoxExample);
+    
+    labelExample = new QLabel(this);
+    labelExample->setText(
+        "<b>Примеры строк для ввода:</b><br>"
+        "• Привет (мир) как дела? → Результат: Привет  как дела?<br>"
+        "• Это (текст) для (обработки) скобок → Результат: Это  для  скобок<br>"
+        "• Удалить (все что внутри) скобок → Результат: Удалить  скобок<br>"
+        "• (Начальная) строка с (несколькими) скобками → Результат:  строка с  скобками<br>"
+        "• Текст без скобок → Результат: Текст без скобок"
+    );
+    labelExample->setWordWrap(true);
+    labelExample->setStyleSheet("padding: 8px; background-color: #f3e5f5; border-radius: 5px;");
+    
+    exampleLayout->addWidget(labelExample);
+    
+    // ==================== ГРУППА ВВОДА ====================
+    groupBoxInput = new QGroupBox("Входная строка", this);
+    groupBoxInput->setStyleSheet(
+        "QGroupBox {"
+        "  border: 2px solid #3498db;"
+        "  border-radius: 8px;"
+        "  margin-top: 12px;"
+        "  padding-top: 12px;"
+        "  font-weight: bold;"
+        "}"
+        "QGroupBox::title {"
+        "  subcontrol-origin: margin;"
+        "  left: 10px;"
+        "  padding: 0 5px 0 5px;"
+        "  color: #3498db;"
+        "}"
+    );
+    
+    QVBoxLayout *inputLayout = new QVBoxLayout(groupBoxInput);
+    
+    QLabel *labelHint = new QLabel("Введите текст (может содержать круглые скобки):", this);
+    labelHint->setWordWrap(true);
+    labelHint->setStyleSheet("color: #555; font-style: italic;");
+    
+    textEditInput = new QTextEdit(this);
+    textEditInput->setPlaceholderText(
+        "Пример: Привет (мир) как дела? Это строка (для обработки) со скобками.\n"
+        "Внутри скобок не должно быть других скобок."
+    );
+    textEditInput->setMinimumHeight(120);
+    textEditInput->setStyleSheet(
+        "QTextEdit {"
+        "  border: 1px solid #bdc3c7;"
+        "  border-radius: 5px;"
+        "  padding: 8px;"
+        "  font-family: 'Courier New', monospace;"
+        "  font-size: 11pt;"
+        "}"
+        "QTextEdit:focus {"
+        "  border: 2px solid #3498db;"
+        "}"
+    );
+    
+    inputLayout->addWidget(labelHint);
+    inputLayout->addWidget(textEditInput);
+    
+    // ==================== ГРУППА ВЫВОДА ====================
+    groupBoxOutput = new QGroupBox("Результат обработки", this);
+    groupBoxOutput->setStyleSheet(
+        "QGroupBox {"
+        "  border: 2px solid #2ecc71;"
+        "  border-radius: 8px;"
+        "  margin-top: 12px;"
+        "  padding-top: 12px;"
+        "  font-weight: bold;"
+        "}"
+        "QGroupBox::title {"
+        "  subcontrol-origin: margin;"
+        "  left: 10px;"
+        "  padding: 0 5px 0 5px;"
+        "  color: #2ecc71;"
+        "}"
+    );
+    
+    QVBoxLayout *outputLayout = new QVBoxLayout(groupBoxOutput);
+    
+    QLabel *labelResult = new QLabel("Строка после удаления содержимого скобок:", this);
+    labelResult->setStyleSheet("font-weight: bold;");
+    
+    lineEditResult = new QLineEdit(this);
+    lineEditResult->setReadOnly(true);
+    lineEditResult->setMinimumHeight(40);
+    lineEditResult->setStyleSheet(
+        "QLineEdit {"
+        "  border: 2px solid #2ecc71;"
+        "  border-radius: 5px;"
+        "  padding: 8px;"
+        "  font-family: 'Courier New', monospace;"
+        "  font-size: 11pt;"
+        "  background-color: #f0fff4;"
+        "  color: #2c3e50;"
+        "}"
+    );
+    lineEditResult->setPlaceholderText("Результат появится здесь после нажатия кнопки 'Обработать'");
+    
+    outputLayout->addWidget(labelResult);
+    outputLayout->addWidget(lineEditResult);
+    
+    // ==================== КНОПКИ ====================
+    QHBoxLayout *buttonLayout = new QHBoxLayout();
+    buttonLayout->addStretch();
+    
+    btnProcess = new QPushButton("ОБРАБОТАТЬ", this);
+    btnProcess->setMinimumSize(140, 45);
+    btnProcess->setStyleSheet(
+        "QPushButton {"
+        "  background-color: #3498db;"
+        "  color: white;"
+        "  border: none;"
+        "  border-radius: 5px;"
+        "  font-weight: bold;"
+        "  font-size: 12pt;"
+        "  padding: 8px 20px;"
+        "}"
+        "QPushButton:hover {"
+        "  background-color: #2980b9;"
+        "}"
+        "QPushButton:pressed {"
+        "  background-color: #1c5d87;"
+        "}"
+    );
+    
+    btnClear = new QPushButton("ОЧИСТИТЬ", this);
+    btnClear->setMinimumSize(140, 45);
+    btnClear->setStyleSheet(
+        "QPushButton {"
+        "  background-color: #f39c12;"
+        "  color: white;"
+        "  border: none;"
+        "  border-radius: 5px;"
+        "  font-weight: bold;"
+        "  font-size: 12pt;"
+        "  padding: 8px 20px;"
+        "}"
+        "QPushButton:hover {"
+        "  background-color: #e67e22;"
+        "}"
+        "QPushButton:pressed {"
+        "  background-color: #d35400;"
+        "}"
+    );
+    
+    btnExit = new QPushButton("ВЫХОД", this);
+    btnExit->setMinimumSize(120, 45);
+    btnExit->setStyleSheet(
+        "QPushButton {"
+        "  background-color: #e74c3c;"
+        "  color: white;"
+        "  border: none;"
+        "  border-radius: 5px;"
+        "  font-weight: bold;"
+        "  font-size: 12pt;"
+        "  padding: 8px 20px;"
+        "}"
+        "QPushButton:hover {"
+        "  background-color: #c0392b;"
+        "}"
+        "QPushButton:pressed {"
+        "  background-color: #a93226;"
+        "}"
+    );
+    
+    buttonLayout->addWidget(btnProcess);
+    buttonLayout->addSpacing(20);
+    buttonLayout->addWidget(btnClear);
+    buttonLayout->addSpacing(20);
+    buttonLayout->addWidget(btnExit);
+    buttonLayout->addStretch();
+    
+    // ==================== СТАТУСНАЯ СТРОКА ====================
+    labelStatus = new QLabel(this);
+    labelStatus->setAlignment(Qt::AlignCenter);
+    labelStatus->setMinimumHeight(45);
+    labelStatus->setStyleSheet(
+        "QLabel {"
+        "  padding: 10px;"
+        "  border-radius: 5px;"
+        "  font-weight: 500;"
+        "}"
+    );
+    updateStatus("Введите текст и нажмите 'ОБРАБОТАТЬ'");
+    
+    // Добавление всех компонентов в главный layout
+    mainLayout->addWidget(groupBoxExample);
+    mainLayout->addWidget(groupBoxInput);
+    mainLayout->addWidget(groupBoxOutput);
+    mainLayout->addLayout(buttonLayout);
+    mainLayout->addWidget(labelStatus);
+    
+    // Подключение сигналов
+    connect(btnProcess, &QPushButton::clicked, this, &MainWindow::onProcessClicked);
+    connect(btnClear, &QPushButton::clicked, this, &MainWindow::onClearClicked);
+    connect(btnExit, &QPushButton::clicked, this, &MainWindow::onExitClicked);
+}
+
+MainWindow::~MainWindow()
+{
+}
+
+// Функция обновления статусной строки
+void MainWindow::updateStatus(const QString &message, bool isError)
+{
+    labelStatus->setText(message);
+    
+    QString style = isError
+        ? "background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;"
+        : "background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;";
+    
+    labelStatus->setStyleSheet(
+        "QLabel {"
+        "  padding: 10px;"
+        "  border-radius: 5px;"
+        "  font-weight: 500;"
+        "  " + style + 
+        "}"
+    );
+}
+
+// Функция валидации входной строки
+bool MainWindow::validateInput(const QString &input)
+{
+    if (input.isEmpty()) {
+        updateStatus("Ошибка: Введите текст для обработки!", true);
+        return false;
+    }
+    
+    // Проверка на наличие незакрытых скобок
+    int openCount = 0;
+    int closeCount = 0;
+    
+    for (const QChar &ch : input) {
+        if (ch == '(') {
+            openCount++;
+        } else if (ch == ')') {
+            closeCount++;
+        }
+    }
+    
+    if (openCount != closeCount) {
+        updateStatus("Предупреждение: Количество открывающих и закрывающих скобок не совпадает!", true);
+        // Не возвращаем false, так как обработка всё равно возможна
+    }
+    
+    return true;
+}
+
+// ОСНОВНАЯ ФУНКЦИЯ: Удаление содержимого круглых скобок
+// Алгоритм:
+// 1. Проходим по строке символ за символом
+// 2. При встрече '(' включаем режим пропуска
+// 3. При встрече ')' выключаем режим пропуска
+// 4. Все символы вне скобок копируем в результат
+QString MainWindow::removeParenthesesContent(const QString &input)
+{
+    QString result;
+    bool insideParentheses = false;
+    int parenthesesCount = 0;
+    
+    for (int i = 0; i < input.length(); ++i) {
+        QChar currentChar = input[i];
+        
+        if (currentChar == '(') {
+            insideParentheses = true;
+            parenthesesCount++;
+            // Не добавляем '(' в результат
+            continue;
+        }
+        
+        if (currentChar == ')') {
+            insideParentheses = false;
+            parenthesesCount--;
+            // Не добавляем ')' в результат
+            continue;
+        }
+        
+        // Если мы не внутри скобок, добавляем символ в результат
+        if (!insideParentheses) {
+            result += currentChar;
+        }
+    }
+    
+    // Обработка случая с лишними пробелами (опционально)
+    // Удаляем двойные пробелы, которые могли возникнуть после удаления
+    result.replace(QRegularExpression("\\s+"), " ");
+    result = result.trimmed();
+    
+    return result;
+}
+
+// Альтернативная реализация с использованием QRegularExpression
+// (более короткая, но менее наглядная для обучения)
+QString removeParenthesesContentRegex(const QString &input)
+{
+    // Регулярное выражение: ищет любые символы между ( и ), включая сами скобки
+    QRegularExpression re("\\([^()]*\\)");
+    // Заменяем найденные совпадения на пустую строку
+    QString result = input;
+    result.replace(re, "");
+    // Удаляем лишние пробелы
+    result.replace(QRegularExpression("\\s+"), " ");
+    return result.trimmed();
+}
+
+// Обработчик кнопки "Обработать"
+void MainWindow::onProcessClicked()
+{
+    // Получаем входной текст
+    QString inputText = textEditInput->toPlainText();
+    
+    // Валидация ввода
+    if (!validateInput(inputText)) {
+        if (inputText.isEmpty()) {
+            return;
+        }
+    }
+    
+    // Обработка строки - удаление содержимого скобок
+    // Используем основную реализацию (можно заменить на regex-версию)
+    QString result = removeParenthesesContent(inputText);
+    
+    // Вывод результата
+    if (result.isEmpty()) {
+        lineEditResult->setText("(Пустая строка после обработки)");
+        updateStatus("Обработка завершена. Все символы находились внутри скобок.");
+    } else {
+        lineEditResult->setText(result);
+        
+        // Подсчитываем количество удаленных скобочных групп
+        int openCount = 0;
+        for (const QChar &ch : inputText) {
+            if (ch == '(') openCount++;
+        }
+        
+        updateStatus(QString("Обработка завершена. Удалено %1 скобочных групп. Результат: \"%2\"")
+                     .arg(openCount).arg(result.length() > 50 ? result.left(50) + "..." : result));
+    }
+}
+
+// Обработчик кнопки "Очистить"
+void MainWindow::onClearClicked()
+{
+    textEditInput->clear();
+    lineEditResult->clear();
+    updateStatus("Поля очищены. Введите новый текст.");
+    textEditInput->setFocus();
+}
+
+// Обработчик кнопки "Выход"
+void MainWindow::onExitClicked()
+{
+    QApplication::quit();
+}
