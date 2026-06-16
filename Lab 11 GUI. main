@@ -1,0 +1,77 @@
+#include <QTextEdit>
+#include <QListWidget>
+#include <QString>
+#include <QStringList>
+#include <vector>
+
+using namespace std;
+
+// Функция ввода данных из QTextEdit в vector<double>
+vector<double> input(QTextEdit* textEdit) {
+    vector<double> result;
+    
+    // Получение текста из текстового поля
+    QString text = textEdit->toPlainText();
+    text = text.trimmed();
+    
+    if (text.isEmpty()) {
+        return result;
+    }
+    
+    // Разбиение на строки
+    QStringList lines = text.split('\n', Qt::SkipEmptyParts);
+    
+    for (int i = 0; i < lines.size(); ++i) {
+        QString line = lines[i].trimmed();
+        bool ok;
+        double value = line.toDouble(&ok);
+        
+        if (ok) {
+            result.push_back(value);
+        }
+    }
+    
+    return result;
+}
+
+// Функция вывода данных в QListWidget
+void output(const vector<double>& array, QListWidget* listWidget,
+            const QString& title = "", bool showCondition = false,
+            double firstElem = 0, bool conditionMet = false) {
+    
+    listWidget->clear();
+    
+    // Добавление заголовка
+    if (!title.isEmpty()) {
+        listWidget->addItem(title);
+        listWidget->addItem("");
+    }
+    
+    // Вывод информации об условии
+    if (showCondition) {
+        if (conditionMet) {
+            listWidget->addItem("✓ Условие: первый элемент НЕ является максимальным");
+            listWidget->addItem(QString("  Создан новый вектор (элементы > %1):")
+                                .arg(firstElem, 0, 'f', 3));
+        } else {
+            listWidget->addItem("✗ Условие НЕ выполнено");
+            listWidget->addItem("  Первый элемент является максимальным");
+            listWidget->addItem("  Новая структура не создаётся");
+        }
+        listWidget->addItem("");
+    }
+    
+    // Вывод элементов вектора
+    if (array.empty()) {
+        if (!conditionMet) {
+            // Уже выведено сообщение
+        } else {
+            listWidget->addItem("  Нет элементов, больших первого");
+        }
+    } else {
+        for (size_t i = 0; i < array.size(); ++i) {
+            QString itemText = QString("  • %1").arg(array[i], 0, 'f', 3);
+            listWidget->addItem(itemText);
+        }
+    }
+}
